@@ -3,11 +3,15 @@ package com.game.entity;
 import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.sun.xml.internal.bind.v2.TODO;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
 @Entity
 public class Player {
@@ -17,29 +21,20 @@ public class Player {
 
     private String name;// Имя персонажа (до 12 знаков включительно)
     private String title;// Титул персонажа (до 30 знаков включительно)
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private Race race;// Раса персонажа
-    @Enumerated
-    private Profession profession;// Провессия персонажа
-    private Integer experience; // опыт персонажа. Дапазон значений 0...10 000 000
+    @Enumerated(EnumType.STRING)
+    private Profession profession;// Профессия персонажа
+    private Integer experience; // Опыт персонажа. Диапазон значений 0...10 000 000
     private Integer level;// Уровень персонажа
-    private Integer untilNextLevel; // Остатоко опыта до следующего уровня
+    private Integer untilNextLevel; // Остаток опыта до следующего уровня
     @Temporal(TemporalType.DATE)
-    private Date birthday; // Дата регистрации. Даипазон значений 2000...3000 включительно
+    private Date birthday; // Дата регистрации. Диапазон значений 2000...3000 включительно
     @Type(type = "org.hibernate.type.NumericBooleanType")
+    @ColumnDefault("0")
     private Boolean banned;// Забанен/не забанен
 
-    public Player(Long id, String name, String title, Race race, Profession profession, Date birthday, Integer experience) {
-        this.name = name;
-        this.title = title;
-        this.race = race;
-        this.profession = profession;
-        this.birthday = birthday;
-        this.banned = false;
-        this.experience = experience;
-
-        this.level = (int)((Math.sqrt(2500.0+200.0*(double)experience)-50.0)/100.0);
-        this.untilNextLevel = 50*(level+1)*(level+2)-experience;
+    public Player() {
     }
 
     public Long getId() {
@@ -55,7 +50,6 @@ public class Player {
     }
 
     public void setName(String name) {
-        // TODO: 07.01.2022 Сделать проверку до 12 знаков включительно
         this.name = name;
     }
 
@@ -64,7 +58,6 @@ public class Player {
     }
 
     public void setTitle(String title) {
-        // TODO: 07.01.2022 сделать проверку до 30 знаков включительно
         this.title = title;
     }
 
@@ -89,7 +82,6 @@ public class Player {
     }
 
     public void setExperience(Integer experience) {
-        // TODO: 07.01.2022 Добавить проверку на диапазон значений 0...10 000 000
         this.experience = experience;
     }
 
@@ -97,16 +89,16 @@ public class Player {
         return level;
     }
 
-    public void setLevel(Integer level) {
-        this.level = level;
+    public void setLevel() {
+        this.level = (int)((Math.sqrt(2500.0+200.0*(double)getExperience())-50.0)/100.0);
     }
 
     public Integer getUntilNextLevel() {
         return untilNextLevel;
     }
 
-    public void setUntilNextLevel(Integer untilNextLevel) {
-        this.untilNextLevel = untilNextLevel;
+    public void setUntilNextLevel() {
+        this.untilNextLevel = 50*(getLevel()+1)*(getLevel()+2)-getExperience();
     }
 
     public Date getBirthday() {
@@ -114,7 +106,6 @@ public class Player {
     }
 
     public void setBirthday(Date birthday) {
-        // TODO: 07.01.2022 Добавить проверку на диапазон 2000...3000 включительно 
         this.birthday = birthday;
     }
 
@@ -124,5 +115,55 @@ public class Player {
 
     public void setBanned(Boolean banned) {
         this.banned = banned;
+    }
+
+    public boolean hasRequiredFields() {
+        //Проверка, что обязательные поля существуют
+        if (
+                Objects.isNull(getName()) ||
+                        Objects.isNull(getTitle()) ||
+                        Objects.isNull(getRace()) ||
+                        Objects.isNull(getProfession()) ||
+                        Objects.isNull(getBirthday()) ||
+                        Objects.isNull(getExperience())
+        ) {
+            return false;
+        }
+        //Проверка длин полей Name и Title
+        if (getName().length() > 12 || getTitle().length() > 30) {
+            return false;
+        }
+        //Проверка, что поле Name не пустое
+        if (getName().isEmpty()) {
+            return false;
+        }
+        // Проверка, что опыт лежит в заданных пределах
+        if (getExperience().compareTo(10_000_000) > 0 || getExperience().compareTo(0) < 0) {
+            return false;
+        }
+        //Проверка, что дата регистрации не ранее 2000-ого и не позже 3000-ого года
+        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+        Date dateMin = null;
+        Date dateMax = null;
+        try {
+            dateMin = df.parse("01/01/2000");
+            dateMax = df.parse("31/12/3000");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        if (getBirthday().before(dateMin) ||
+                getBirthday().after(dateMax)
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @PrePersist
+    @PreUpdate
+    public void setLevels() {
+        setLevel();
+        setUntilNextLevel();
     }
 }

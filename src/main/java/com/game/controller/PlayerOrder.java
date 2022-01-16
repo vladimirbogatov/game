@@ -19,7 +19,7 @@ public enum PlayerOrder {
     BEFORE("before"),
     PAGE_NUMBER("pageNumber"),
     PAGE_SIZE("pageSize"),
-    PLAYER_ORDER("playerOrder");
+    PLAYER_ORDER("order");
 
     private final String fieldName;
 

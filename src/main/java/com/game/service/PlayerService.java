@@ -2,8 +2,10 @@ package com.game.service;
 
 import com.game.entity.Player;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
-import java.awt.print.Pageable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +16,7 @@ public interface PlayerService {
      * Подсчёт количества игроков по условию
      * @return количество имеющихся игороков
      */
-    Integer countPlayers();
+    Integer countPlayers(Map<String, String> allParams);
 
     /**
      * Создаёт игрока. Мы не может создать игорока, если:
@@ -58,9 +60,17 @@ public interface PlayerService {
     boolean delPlayerById(Long id);
 
     /**
-     * Выборка игроков по условию.
-     * @param allParams - Map с условиями выбора игроков
-     * @return список игроков, котоыре мы выбрали
+     * Выборка игроков по условию
+     * @param allParams - Map с условиями выбора
+     * @return список игроков
      */
-    List <Player> getPlayersByParams(Map<String, String> allParams);
+    List<Player> getPlayerList(Map<String, String> allParams);
+
+    /**
+     * Выборка игроков по условию.
+     * @param allParams - Map с условиями выбора игроков. Pageble и sort в Map игнорируются
+     * @param pageable
+     * @return список игроков, которые мы выбрали
+     */
+    List <Player> getPlayersByParams(Map<String, String> allParams, Pageable pageable);
 }
