@@ -2,16 +2,19 @@ package com.game.service;
 
 import com.game.controller.PlayerOrder;
 import com.game.entity.Player;
+import com.game.entity.PlayerNameConstants;
 import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.game.repository.PlayersRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -42,26 +45,26 @@ public class PlayerServiceImp implements PlayerService {
         //Если указаний нет - то используем дефолтные значений
         Set<String> keys = allParams.keySet();
         //Если какие-то указания есть в параметрах, то дефолтные значения меняем
-        if (keys.contains(PlayerOrder.PAGE_NUMBER.getFieldName()) || keys.contains(PlayerOrder.PAGE_SIZE.getFieldName())) {
-            String pageNumberString = allParams.get(PlayerOrder.PAGE_NUMBER.getFieldName());
+        if (keys.contains(PlayerNameConstants.PAGE_NUMBER) || keys.contains(PlayerNameConstants.PAGE_SIZE)) {
+            String pageNumberString = allParams.get(PlayerNameConstants.PAGE_NUMBER);
             if (Objects.nonNull(pageNumberString)) {
                 try {
                     pageNumber = Integer.parseInt(pageNumberString);
                 } catch (NumberFormatException e) {
                     LOGGER.error(String.format("Ошибка форматирования поля: %s. Значение остаётся default: %d",
-                            PlayerOrder.PAGE_NUMBER.getFieldName(), DefaultValueOfPaging.PAGE_NUMBER.getFieldValue()));
+                            PlayerNameConstants.PAGE_NUMBER, DefaultValueOfPaging.PAGE_NUMBER.getFieldValue()));
                 }
-                allParams.remove(PlayerOrder.PAGE_NUMBER.getFieldName());
+                allParams.remove(PlayerNameConstants.PAGE_NUMBER);
             }
-            String pageSizeString = allParams.get(PlayerOrder.PAGE_SIZE.getFieldName());
+            String pageSizeString = allParams.get(PlayerNameConstants.PAGE_SIZE);
             if (Objects.nonNull(pageSizeString)) {
                 try {
                     pageSize = Integer.parseInt(pageSizeString);
                 } catch (NumberFormatException e) {
                     LOGGER.error(String.format("Ошибка форматирования поля: %s. Значение остаётся default: %d",
-                            PlayerOrder.PAGE_SIZE.getFieldName(), DefaultValueOfPaging.PAGE_SIZE.getFieldValue()));
+                            PlayerNameConstants.PAGE_SIZE, DefaultValueOfPaging.PAGE_SIZE.getFieldValue()));
                 }
-                allParams.remove(PlayerOrder.PAGE_SIZE.getFieldName());
+                allParams.remove(PlayerNameConstants.PAGE_SIZE);
             }
         }
 
@@ -70,9 +73,9 @@ public class PlayerServiceImp implements PlayerService {
         Sort sort;
         String sortByParam = PlayerOrder.ID.getFieldName();
 
-        if (keys.contains(PlayerOrder.PLAYER_ORDER.getFieldName())) {
-            sortByParam = allParams.get(PlayerOrder.PLAYER_ORDER.getFieldName()).toLowerCase();
-            allParams.remove(PlayerOrder.PLAYER_ORDER.getFieldName());
+        if (keys.contains(PlayerNameConstants.ORDER)) {
+            sortByParam = allParams.get(PlayerNameConstants.ORDER).toLowerCase();
+            allParams.remove(PlayerNameConstants.ORDER);
         }
         sort = Sort.by(Sort.Direction.ASC, sortByParam);
         pageable = PageRequest.of(pageNumber, pageSize,sort);
@@ -91,22 +94,58 @@ public class PlayerServiceImp implements PlayerService {
         LOGGER.info("Сначала обработаем параметры \"не границы диапазонов\"");
         for (String field : key) {
             switch (field) {
-                case ("name"):
-                case ("title"):
+                case (PlayerNameConstants.NAME):
+                case (PlayerNameConstants.TITLE):
                     filters.add(FilterBuilder.aFilter()
                             .withField(field).withValue(allParams.get(field))
                             .withOperator(QueryOperator.LIKE).build());
                     break;
-                case ("race"):
-                case ("profession"):
-                case ("banned"):
+                case (PlayerNameConstants.RACE):
+                case (PlayerNameConstants.PROFESSION):
+                case (PlayerNameConstants.BANNED):
                     filters.add(FilterBuilder.aFilter()
                             .withField(field).withValue(allParams.get(field))
                             .withOperator(QueryOperator.EQUALS).build());
+                    break;
+                case (PlayerNameConstants.AFTER_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                            .withField(PlayerNameConstants.BIRTHDAY).withValue(allParams.get(field))
+                            .withOperator(QueryOperator.GREATER_THAN).build()
+                    );
+                    break;
+                case (PlayerNameConstants.MIN_EXPERIENCE_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                        .withField(PlayerNameConstants.EXPERIENCE).withValue(allParams.get(field))
+                        .withOperator(QueryOperator.GREATER_THAN).build()
+                );
+                    break;
+                case (PlayerNameConstants.MIN_LEVEL_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                            .withField(PlayerNameConstants.LEVEL).withValue(allParams.get(field))
+                            .withOperator(QueryOperator.GREATER_THAN).build()
+                    );
+                    break;
+                case (PlayerNameConstants.BEFORE_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                            .withField(PlayerNameConstants.BIRTHDAY).withValue(allParams.get(field))
+                            .withOperator(QueryOperator.LESS_THAN).build()
+                    );
+                    break;
+                case (PlayerNameConstants.MAX_EXPERIENCE_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                            .withField(PlayerNameConstants.EXPERIENCE).withValue(allParams.get(field))
+                            .withOperator(QueryOperator.LESS_THAN).build()
+                    );
+                    break;
+                case (PlayerNameConstants.MAX_LEVEL_LIMIT):
+                    filters.add(FilterBuilder.aFilter()
+                            .withField(PlayerNameConstants.LEVEL).withValue(allParams.get(field))
+                            .withOperator(QueryOperator.LESS_THAN).build()
+                    );
             }
         }
 
-        //Теперь нужно обработать параметры "границы диапазонов"
+ /*       //Теперь нужно обработать параметры "границы диапазонов"
         //Сначала просто считаем все значения, не заботясь, есть они там или нет
         String afterString = allParams.get(PlayerOrder.AFTER.getFieldName());
         String beforeString = allParams.get(PlayerOrder.BEFORE.getFieldName());
@@ -140,7 +179,7 @@ public class PlayerServiceImp implements PlayerService {
                 minMax.add(maxLevelString);
                 filters.add(FilterBuilder.aFilter().withOperator(QueryOperator.BETWEEN).withValues(minMax).withField(PlayerOrder.LEVEL.getFieldName()).build());
             }
-
+*/
         return new CustomProductRepository(playersRepo).getQueryResult(filters, pageable);
     }
 
@@ -156,49 +195,57 @@ public class PlayerServiceImp implements PlayerService {
     }
 
     @Override
-    public boolean createPlayer(Player player) {
+    public Player createPlayer(Player player) {
         LOGGER.info("Создаю в базе запись с игроком");
         boolean result = true;
         try {
-            playersRepo.save(player);
+            return playersRepo.save(player);
         } catch (IllegalArgumentException e) {
-            LOGGER.error("Ошибка создания нового игрока в базе. Возможно player == null", e);
-            result =  false;
+            LOGGER.error("Ошибка создания нового игрока в базе. Возможно player == null", e);;
         }
-        LOGGER.info(String.format("В базе создана запись с игроком id = %d? - %b",player.getId(),result));
-        return result;
+        //LOGGER.info(String.format("В базе создана запись с игроком id = %d? - %b",player.getId(),result));
+        return null;
     }
 
     @Override
     public Player getPlayerById(Long id) {
         LOGGER.info(String.format("Ищем в базе игрока с id = %d", id));
-        Player player = null;
         try {
-            player = playersRepo.getOne(id);
-        } catch (EntityNotFoundException e) {
+            Player player = playersRepo.findById(id).get();
+            return player;
+        } catch (Exception e) {
             LOGGER.error(String.format("Игрок с id = %d в базе не найден. Возвращаем null", id), e);
         }
-        //player = playersRepo.getOne(id);
-        LOGGER.info(String.format("В базе нейден игрок с id = %id",id));
-        return player;
+        return null;
     }
 
     @Override
-    public boolean updatePlayer(Player player, Long id) {
-        LOGGER.info(String.format("Ообновляем данные игрока с id = %d",id));
+    public Player updatePlayer(Player player, Long id) {
+        LOGGER.info(String.format("Обновляем данные игрока с id = %d",id));
         boolean result = false;
-        //Ишем, если ли данный игрок в базе, чтобы обновить его данные
+        //Ищем, если ли данный игрок в базе, чтобы обновить его данные
         Player oldPlayer = getPlayerById(id);
         if (oldPlayer == null) {
             LOGGER.error(String.format("Игрок с id = %d в базе не найден. Возвращаем false", id));
-            return false;
+            return null;
+        }
+        if (Objects.isNull(player) ) {
+            return oldPlayer;
+        }
+
+        try {
+            oldPlayer.copyDiff(player);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
         }
         //Задаём, переданному player id. Если у player будет id, метод save сработает как update
-        player.setId(id); //
+//        player.setId(id); //
         // сохраняем игрока в базу и проверяем как у нас всё сохранилос
-        result = createPlayer(player);
-        LOGGER.info(String.format("Данные игрока id = %d обновлены? - %b", id, result));
-        return result;
+        Player newPlayer = createPlayer(oldPlayer);
+//        LOGGER.info(String.format("Данные игрока id = %d обновлены? - %b", id, result));
+        return newPlayer;
     }
 
     @Override
@@ -214,5 +261,6 @@ public class PlayerServiceImp implements PlayerService {
         LOGGER.info(String.format("Игрок с id = %d удалён? - %b",id,result));
         return result;
     }
+
 
 }

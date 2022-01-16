@@ -8,6 +8,7 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -117,7 +118,9 @@ public class Player {
         this.banned = banned;
     }
 
-    public boolean hasRequiredFields() {
+    @PrePersist
+    @PreUpdate
+    public void hasRequiredFields() {
         //Проверка, что обязательные поля существуют
         if (
                 Objects.isNull(getName()) ||
@@ -127,19 +130,19 @@ public class Player {
                         Objects.isNull(getBirthday()) ||
                         Objects.isNull(getExperience())
         ) {
-            return false;
+            throw new IllegalArgumentException("Title, Race, Profession, Birthday, Experience must be NON NULL");
         }
         //Проверка длин полей Name и Title
         if (getName().length() > 12 || getTitle().length() > 30) {
-            return false;
+            throw new IllegalArgumentException("Check Name and Title length");
         }
         //Проверка, что поле Name не пустое
         if (getName().isEmpty()) {
-            return false;
+            throw new IllegalArgumentException("Empty name");
         }
         // Проверка, что опыт лежит в заданных пределах
         if (getExperience().compareTo(10_000_000) > 0 || getExperience().compareTo(0) < 0) {
-            return false;
+            throw new IllegalArgumentException("Check Experience limit");
         }
         //Проверка, что дата регистрации не ранее 2000-ого и не позже 3000-ого года
         SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
@@ -154,16 +157,48 @@ public class Player {
         if (getBirthday().before(dateMin) ||
                 getBirthday().after(dateMax)
         ) {
-            return false;
+            throw new IllegalArgumentException("Birthday must be between 2000th and 3000th year");
         }
-
-        return true;
+        setLevels();
     }
 
-    @PrePersist
-    @PreUpdate
     public void setLevels() {
         setLevel();
         setUntilNextLevel();
     }
+
+    public boolean isEmpty()  {
+
+        for (Field field : this.getClass().getDeclaredFields()) {
+            try {
+                field.setAccessible(true);
+                if (field.get(this)!=null) {
+                    return false;
+                }
+            } catch (Exception e) {
+                System.out.println("Exception occured in processing");
+            }
+        }
+        return true;
+    }
+
+    public void copyDiff(Player source) throws
+            IllegalAccessException, NoSuchFieldException {
+        for (Field field : source.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            String name = field.getName();
+            if (name.equals(PlayerNameConstants.ID)) {
+                continue;
+            }
+            Object value = field.get(source);
+            //If it is a non null value copy to destination
+            if (null != value)
+            {
+                Field destField = this.getClass().getDeclaredField(name);
+                destField.setAccessible(true);
+                destField.set(this, value);
+            }
+        }
+    }
+
 }

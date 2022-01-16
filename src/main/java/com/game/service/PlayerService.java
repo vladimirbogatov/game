@@ -28,7 +28,7 @@ public interface PlayerService {
      * @param player
      * @return если создали - true, если не создали - false
      */
-    boolean createPlayer(Player player);
+    Player createPlayer(Player player);
 
     /**
      * Возвращает игрока по его id
@@ -48,7 +48,7 @@ public interface PlayerService {
      * @param id - id игрока, которого нужно обновить
      * @return если обновили - tru, если не обновили - false
      */
-    boolean updatePlayer (Player player, Long id);
+    Player updatePlayer (Player player, Long id);
 
     /**
      * Удалить игрока по его id

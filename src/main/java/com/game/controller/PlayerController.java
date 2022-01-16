@@ -10,9 +10,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.NumberUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.PostUpdate;
 import java.awt.print.Pageable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 public class PlayerController {
@@ -28,20 +30,31 @@ public class PlayerController {
     public ResponseEntity <List<Player>> getPlayerList(@RequestParam(required = false) Map<String, String> allParams) {
         return new ResponseEntity<>(playerService.getPlayerList(allParams), HttpStatus.OK);
     }
+    @GetMapping("/rest/players/{id}")
+    public ResponseEntity<Player> getPlayerById(@PathVariable(name = "id") String id) {
+        //Проверка id на валидность
+        if (!isValidId(id)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        Player newPlayer = playerService.getPlayerById(Long.parseLong(id));
+        return Objects.nonNull(newPlayer) ?
+                new ResponseEntity<>(newPlayer, HttpStatus.OK) :
+                new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 
     @GetMapping("/rest/players/count")
     public ResponseEntity<Integer> count(@RequestParam(required = false) Map<String, String> allParams) {
-
         return new ResponseEntity<>(playerService.countPlayers(allParams), HttpStatus.OK);
     }
 
     @PostMapping("/rest/players")
-    public ResponseEntity<?> create(@RequestBody Player player) {
-        if (!player.hasRequiredFields()) {
+    public ResponseEntity<Player> create(@RequestBody Player player) {
+        try {
+            Player newPlayer = playerService.createPlayer(player);
+            return Objects.nonNull(newPlayer) ? new ResponseEntity<>(newPlayer, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        boolean result = playerService.createPlayer(player);
-        return result ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     @DeleteMapping ("/rest/players/{id}")
@@ -50,22 +63,31 @@ public class PlayerController {
         if (!isValidId(id)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-
-        return playerService.delPlayerById(Long.parseLong(id)) ?
+        boolean result = playerService.delPlayerById(Long.parseLong(id));
+        return  result ?
                 new ResponseEntity<>(HttpStatus.OK) :
                 new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
-    @PutMapping("/rest/players/{id}")
-    public ResponseEntity<?> update(@PathVariable(name = "id") String id,
-                                    @RequestParam (required = false) Map<String,String> allParam) {
-        if (!isValidId(id)) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        return playerService.updatePlayer(new Player(), Long.parseLong(id)) ?
-                new ResponseEntity<>(HttpStatus.OK) :
-                new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    @PostMapping("/rest/players/{id}")
+    public ResponseEntity<Player> update(@PathVariable(name = "id") String id,
+                                    @RequestBody (required = false) Player player) {
+        if (isValidId(id) ) {
+            try {
+                Player newPlayer = playerService.updatePlayer(player, Long.parseLong(id));
+                return Objects.nonNull(newPlayer) ?
+                        new ResponseEntity<>(newPlayer, HttpStatus.OK) :
+                        new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            } catch (Exception e) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }else return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Проверка ID на валидность в соответствии с условиями задачи
+     * @param id
+     * @return
+     */
     boolean isValidId(String id) {
         Long idLong;
         try {
@@ -73,8 +95,8 @@ public class PlayerController {
         } catch (NumberFormatException e) {
             return false;
         }
-
-        if (idLong < 0) {
+        // Не может быть меньше или равно 0
+        if (idLong <= 0) {
             return false;
         }
         return true;

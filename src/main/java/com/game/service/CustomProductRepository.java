@@ -1,6 +1,7 @@
 package com.game.service;
 
 import com.game.entity.Player;
+import com.game.entity.PlayerNameConstants;
 import com.game.repository.PlayersRepo;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -46,13 +47,32 @@ public class CustomProductRepository {
                         criteriaBuilder.notEqual(root.get(input.getField()),
                                 castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
             case GREATER_THAN:
-                return (root, query, criteriaBuilder) ->
-                        criteriaBuilder.gt(root.get(input.getField()),
-                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                switch (input.getField()) {
+                    case (PlayerNameConstants.BIRTHDAY):
+                        return (root, query, criteriaBuilder) ->
+                                criteriaBuilder.greaterThanOrEqualTo(root.get(input.getField()),
+                                        (Date) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                    case (PlayerNameConstants.LEVEL):
+                    case (PlayerNameConstants.EXPERIENCE):
+                        return (root, query, criteriaBuilder) ->
+                                criteriaBuilder.greaterThanOrEqualTo(root.get(input.getField()),
+                                        (Integer)  castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                }
             case LESS_THAN:
-                return (root, query, criteriaBuilder) ->
-                        criteriaBuilder.lt(root.get(input.getField()),
-                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                switch (input.getField()) {
+                    case (PlayerNameConstants.BIRTHDAY):
+                        return (root, query, criteriaBuilder) ->
+                                criteriaBuilder.lessThanOrEqualTo(root.get(input.getField()),
+                                        (Date) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                    case (PlayerNameConstants.LEVEL):
+                    case (PlayerNameConstants.EXPERIENCE):
+                        return (root, query, criteriaBuilder) ->
+                                criteriaBuilder.lessThanOrEqualTo(root.get(input.getField()),
+                                        (Integer) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                }
+//                return (root, query, criteriaBuilder) ->
+//                        criteriaBuilder.lt(root.get(input.getField()),
+//                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
             case LIKE:
                 return (root, query, criteriaBuilder) ->
                         criteriaBuilder.like(root.get(input.getField()), "%"+input.getValue()+"%");
@@ -62,12 +82,12 @@ public class CustomProductRepository {
                                 .value(castToRequiredType(root.get(input.getField()).getJavaType(), input.getValues()));
            case BETWEEN:
                switch (input.getField()) {
-                   case "birthday":
+                   case (PlayerNameConstants.BIRTHDAY):
                        Date minDate = (Date) castToRequiredType(Date.class, input.getValues().get(0));
                        Date maxDate = (Date) castToRequiredType(Date.class, input.getValues().get(1));
                        return (root, query, criteriaBuilder) -> criteriaBuilder.between(root.get(input.getField()), minDate, maxDate);
-                   case "experience":
-                   case "level":
+                   case (PlayerNameConstants.EXPERIENCE):
+                   case (PlayerNameConstants.LEVEL):
                        Integer minInt = (Integer) castToRequiredType(Integer.class, input.getValues().get(0));
                        Integer maxInt = (Integer) castToRequiredType(Integer.class, input.getValues().get(1));
                        return (root, query, criteriaBuilder) -> criteriaBuilder.between(root.get(input.getField()), minInt, maxInt);
