@@ -70,9 +70,6 @@ public class CustomProductRepository {
                                 criteriaBuilder.lessThanOrEqualTo(root.get(input.getField()),
                                         (Integer) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
                 }
-//                return (root, query, criteriaBuilder) ->
-//                        criteriaBuilder.lt(root.get(input.getField()),
-//                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
             case LIKE:
                 return (root, query, criteriaBuilder) ->
                         criteriaBuilder.like(root.get(input.getField()), "%"+input.getValue()+"%");

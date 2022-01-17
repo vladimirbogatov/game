@@ -144,42 +144,6 @@ public class PlayerServiceImp implements PlayerService {
                     );
             }
         }
-
- /*       //Теперь нужно обработать параметры "границы диапазонов"
-        //Сначала просто считаем все значения, не заботясь, есть они там или нет
-        String afterString = allParams.get(PlayerOrder.AFTER.getFieldName());
-        String beforeString = allParams.get(PlayerOrder.BEFORE.getFieldName());
-        String minExperienceString = allParams.get(PlayerOrder.MIN_EXPERIENCE.getFieldName());
-        String maxExperienceString = allParams.get(PlayerOrder.MAX_EXPERIENCE.getFieldName());
-        String minLevelString = allParams.get(PlayerOrder.MIN_LEVEL.getFieldName());
-        String maxLevelString = allParams.get(PlayerOrder.MAX_LEVEL.getFieldName());
-
-        //... по дню рождения
-            if (Objects.nonNull(afterString) && Objects.nonNull(beforeString)) {
-                List<String> minMax = new ArrayList<>();
-                minMax.add(afterString);
-                minMax.add(beforeString);
-                filters.add(FilterBuilder.aFilter().withOperator(QueryOperator.BETWEEN).withValues(minMax).withField(PlayerOrder.BIRTHDAY.getFieldName()).build());
-            }
-
-        //...по опыту
-
-            if (Objects.nonNull(minExperienceString) && Objects.nonNull(maxExperienceString)) {
-                List<String> minMax = new ArrayList<>();
-                minMax.add(minExperienceString);
-                minMax.add(maxExperienceString);
-                filters.add(FilterBuilder.aFilter().withOperator(QueryOperator.BETWEEN).withValues(minMax).withField(PlayerOrder.EXPERIENCE.getFieldName()).build());
-            }
-
-        //... по level
-
-            if (Objects.nonNull(minLevelString) && Objects.nonNull(maxLevelString)) {
-                List<String> minMax = new ArrayList<>();
-                minMax.add(minLevelString);
-                minMax.add(maxLevelString);
-                filters.add(FilterBuilder.aFilter().withOperator(QueryOperator.BETWEEN).withValues(minMax).withField(PlayerOrder.LEVEL.getFieldName()).build());
-            }
-*/
         return new CustomProductRepository(playersRepo).getQueryResult(filters, pageable);
     }
 
@@ -203,7 +167,6 @@ public class PlayerServiceImp implements PlayerService {
         } catch (IllegalArgumentException e) {
             LOGGER.error("Ошибка создания нового игрока в базе. Возможно player == null", e);;
         }
-        //LOGGER.info(String.format("В базе создана запись с игроком id = %d? - %b",player.getId(),result));
         return null;
     }
 
@@ -223,7 +186,6 @@ public class PlayerServiceImp implements PlayerService {
     public Player updatePlayer(Player player, Long id) {
         LOGGER.info(String.format("Обновляем данные игрока с id = %d",id));
         boolean result = false;
-        //Ищем, если ли данный игрок в базе, чтобы обновить его данные
         Player oldPlayer = getPlayerById(id);
         if (oldPlayer == null) {
             LOGGER.error(String.format("Игрок с id = %d в базе не найден. Возвращаем false", id));
@@ -241,10 +203,9 @@ public class PlayerServiceImp implements PlayerService {
             e.printStackTrace();
         }
         //Задаём, переданному player id. Если у player будет id, метод save сработает как update
-//        player.setId(id); //
         // сохраняем игрока в базу и проверяем как у нас всё сохранилос
         Player newPlayer = createPlayer(oldPlayer);
-//        LOGGER.info(String.format("Данные игрока id = %d обновлены? - %b", id, result));
+
         return newPlayer;
     }
 
