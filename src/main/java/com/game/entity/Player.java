@@ -1,12 +1,8 @@
 package com.game.entity;
 
-import com.game.entity.Profession;
-import com.game.entity.Race;
-import com.sun.xml.internal.bind.v2.TODO;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Type;
 
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Type;
 import javax.persistence.*;
 import java.lang.reflect.Field;
 import java.text.ParseException;
